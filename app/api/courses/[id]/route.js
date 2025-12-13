@@ -22,7 +22,10 @@ export async function GET(_req, { params }) {
   const lessons = await Lesson.find({ course: courseId })
     .sort({ order: 1 })
     .lean();
-  const studentCount = await Enrollment.countDocuments({ course: courseId });
+  const studentCount = await Enrollment.countDocuments({
+    course: courseId,
+    paid: true,
+  });
 
   // 3) 回傳格式
   return NextResponse.json(
@@ -33,6 +36,7 @@ export async function GET(_req, { params }) {
         title: course.title,
         description: course.description,
         price: course.price,
+        isPublished: course.isPublished,
         instructor: {
           name: course.instructor.username,
           email: course.instructor.email,
@@ -66,59 +70,82 @@ async function deleteHandler(req, { params }) {
 
 async function patchHandler(req, { params }) {
   await connectDB();
-  const { title, price, description } = await req.json();
   const courseId = params.id;
+
+  // 安全取得 body
+  let body = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "請提供正確的 JSON 格式" },
+      { status: 400 }
+    );
+  }
+
+  const { title, description, price, isPublished } = body;
+
   const course = await Course.findById(courseId);
   if (!course) {
     return NextResponse.json({ error: "課程不存在" }, { status: 404 });
   }
-  if (course.instructor.toString() !== req.user.id) {
+
+  // 講師身分驗證
+  if (String(course.instructor) !== req.user.id) {
     return NextResponse.json(
-      { error: "你沒有權限修改此課程" },
+      { error: "權限不足，僅講師可修改課程" },
       { status: 403 }
     );
   }
-  const updates = {};
-  if (title) {
-    if (title.trim().length < 3) {
+
+  // ===== 驗證與更新 =====
+  if (title !== undefined) {
+    if (typeof title !== "string" || title.trim().length < 3) {
       return NextResponse.json(
-        { error: "課程標題至少 3 個字元" },
+        { error: "課程標題至少 3 個字" },
         { status: 400 }
       );
     }
-    updates.title = title.trim();
+    course.title = title.trim();
   }
 
-  if (description) {
-    if (description.trim().length < 10) {
+  if (description !== undefined) {
+    if (typeof description !== "string" || description.trim().length < 10) {
       return NextResponse.json(
-        { error: "課程描述至少 10 個字元" },
+        { error: "課程描述至少 10 個字" },
         { status: 400 }
       );
     }
-    updates.description = description.trim();
+    course.description = description.trim();
   }
+
   if (price !== undefined) {
-    if (typeof price !== "number" || price < 0) {
-      return NextResponse.json({ error: "價格格式錯誤" }, { status: 400 });
+    const numeric = Number(price);
+    if (isNaN(numeric) || numeric < 0) {
+      return NextResponse.json(
+        { error: "價格需為大於 0 的數字" },
+        { status: 400 }
+      );
     }
-    updates.price = price;
+    course.price = numeric;
   }
 
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "沒有可更新資料" }, { status: 400 });
+  if (isPublished !== undefined) {
+    if (typeof isPublished !== "boolean") {
+      return NextResponse.json(
+        { error: "isPublished 必須為布林值" },
+        { status: 400 }
+      );
+    }
+    course.isPublished = isPublished;
   }
-  const updatedCourse = await Course.findByIdAndUpdate(courseId, updates, {
-    new: true,
-  })
-    .select("title description price")
-    .lean();
+
+  await course.save();
 
   return NextResponse.json(
-    { message: "更新成功", course: updatedCourse },
+    { message: "課程更新成功", course },
     { status: 200 }
   );
 }
-
 export const DELETE = withAuth(deleteHandler, { role: "instructor" });
 export const PATCH = withAuth(patchHandler, { role: "instructor" });

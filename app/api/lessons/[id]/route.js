@@ -19,10 +19,22 @@ async function handler(req, { params }) {
     if (!course) {
       return NextResponse.json({ error: "課程不存在" }, { status: 404 });
     }
+    if (course.instructor.toString() !== req.user.id) {
+      return NextResponse.json(
+        { error: "權限不足，僅講師可修改章節" },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       {
         message: "取得章節成功",
-        lesson,
+        lesson: {
+          id: lesson._id.toString(),
+          title: lesson.title,
+          content: lesson.content,
+          videoUrl: lesson.videoUrl,
+          order: lesson.order,
+        },
       },
       { status: 200 }
     );
@@ -32,14 +44,24 @@ async function handler(req, { params }) {
   }
 }
 
-async function putHandler(req, { params }) {
+async function patchHandler(req, { params }) {
   try {
     await connectDB();
     const lessonId = params.id;
     if (!lessonId) {
       return NextResponse.json({ error: "缺少章節 ID" }, { status: 400 });
     }
-    const { title, content, videoUrl, order } = await req.json();
+    let body = {};
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "請提供正確的 JSON 格式" },
+        { status: 400 }
+      );
+    }
+
+    const { title, content, videoUrl } = body;
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
       return NextResponse.json({ error: "章節不存在" }, { status: 404 });
@@ -54,10 +76,18 @@ async function putHandler(req, { params }) {
         { status: 403 }
       );
     }
-    if (title !== undefined) lesson.title = title;
+    if (title !== undefined) {
+      if (typeof title !== "string" || !title.trim()) {
+        return NextResponse.json(
+          { error: "標題必須為非空字串" },
+          { status: 400 }
+        );
+      }
+      lesson.title = title.trim();
+    }
     if (content !== undefined) lesson.content = content;
     if (videoUrl !== undefined) lesson.videoUrl = videoUrl;
-    if (order !== undefined) lesson.order = order;
+
     await lesson.save();
 
     return NextResponse.json(
@@ -114,6 +144,6 @@ async function deleteHandler(req, { params }) {
   }
 }
 
-export const GET = handler;
-export const PUT = withAuth(putHandler);
+export const GET = withAuth(handler);
+export const PATCH = withAuth(patchHandler);
 export const DELETE = withAuth(deleteHandler);
