@@ -19,11 +19,11 @@ export default function EditCoursePage() {
   useEffect(() => {
     async function fetchCourse() {
       try {
-        const { data } = await axios.get(`/api/courses/${params.id}`);
+        const { data } = await axios.get(`/api/instructor/courses/${params.id}`);
         const c = data.course;
         setTitle(c.title || "");
         setDescription(c.description || "");
-        setPrice(c.price || "");
+        setPrice(c.price ?? "");
         setIsPublished(c.isPublished);
       } catch (err) {
         console.error("載入課程失敗", err);
@@ -37,17 +37,17 @@ export default function EditCoursePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (title !== undefined && title.trim().length < 3) {
+    if (title.trim().length < 3) {
       toast.error("課程標題至少 3 個字");
       return;
     }
-
+//雖然Number(price)會以數值方式將price傳到後端，但不能price: Number(price),
     try {
       setLoading(true);
-      await axios.patch(`/api/courses/${params.id}`, {
+      await axios.patch(`/api/instructor/courses/${params.id}`, {
         title,
         description,
-        price: Number(price),
+        price,
         isPublished,
       });
       toast.success("課程更新成功");

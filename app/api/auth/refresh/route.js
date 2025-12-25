@@ -41,8 +41,9 @@ export async function POST() {
     if (!user) {
       return NextResponse.json({ error: "使用者不存在" }, { status: 403 });
     }
+    const userId = user._id.toString();
     const newAccessToken = jwt.sign(
-      { id: user.id, role: user.role, email: user.email },
+      { id: userId, role: user.role, email: user.email },
       process.env.ACCESS_SECRET,
       { expiresIn: "15m" }
     );

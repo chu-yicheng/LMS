@@ -31,7 +31,7 @@ export async function GET(req) {
     await connectDB();
 
     const enrollment = await Enrollment.findById(enrollmentId)
-      .populate("course", "title price")
+      .populate("course", "title")
       .populate("user", "email");
 
     if (!enrollment) {
@@ -51,7 +51,7 @@ export async function GET(req) {
         sessionStatus: session.payment_status,
         enrollment: {
           id: enrollment._id.toString(),
-          courseTitle: enrollment.course?.title || "",
+          courseTitle: enrollment.course?.title ?? "",
           finalPrice: enrollment.finalPrice,
           userEmail: enrollment.user?.email || "",
           paidAt: enrollment.paidAt,

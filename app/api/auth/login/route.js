@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import User from "@/models/User";
 import RefreshToken from "@/models/RefreshToken";
 import { connectDB } from "@/lib/db";
@@ -20,14 +20,22 @@ export async function POST(req) {
     if (!isMatch) {
       return NextResponse.json({ error: "密碼錯誤" }, { status: 401 });
     }
-    const accessPayload = { id: user._id, role: user.role,email: user.email};
+    const accessPayload = { id: user._id, role: user.role, email: user.email };
     const refreshPayload = { id: user._id };
-    const accessToken = jwt.sign(accessPayload, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "15m",
-    });
-    const refreshToken = jwt.sign(refreshPayload, process.env.REFRESH_TOKEN_SECRET, {
-      expiresIn: "7d",
-    });
+    const accessToken = jwt.sign(
+      accessPayload,
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        expiresIn: "15m",
+      }
+    );
+    const refreshToken = jwt.sign(
+      refreshPayload,
+      process.env.REFRESH_TOKEN_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
     const ttlMs = 7 * 24 * 60 * 60 * 1000;
     await RefreshToken.create({
       user: user._id,

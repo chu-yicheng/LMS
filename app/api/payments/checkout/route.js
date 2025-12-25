@@ -25,7 +25,7 @@ async function handler(req) {
   if (!course.price || course.price <= 0) {
     return NextResponse.json({ error: "課程價格異常" }, { status: 400 });
   }
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).select("email role isBanned");
   if (!user) {
     return NextResponse.json(
       { error: "使用者不存在或以刪除" },

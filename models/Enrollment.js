@@ -27,7 +27,17 @@ const enrollmentSchema = new mongoose.Schema(
       type: Number,
       min: [0, "價格不能小於 0"],
     },
-
+    completedLessons: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Lesson",
+        default: [],
+      },
+    ],
+    completed: {
+      type: Boolean,
+      default: false,
+    },
     paid: { type: Boolean, default: false },
     paymentId: String,
     paidAt: Date, // 💡 可選補充欄位

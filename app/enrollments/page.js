@@ -8,7 +8,7 @@ export default function MyEnrollmentPage() {
 
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchEnrollments() {
@@ -18,7 +18,7 @@ export default function MyEnrollmentPage() {
         if (!res.ok) {
           setError(data.error || "無法取得課程列表");
         } else {
-          setList(data.enrollments);
+          setList(data.enrollments||[]);
         }
       } catch (err) {
         setError("取得課程列表時發生錯誤");
@@ -38,7 +38,7 @@ export default function MyEnrollmentPage() {
   }
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-xl text-red-600">{error}</p>
         <button
           onClick={() => router.push("/")}
@@ -60,14 +60,14 @@ export default function MyEnrollmentPage() {
           {list.map((c) => (
             <div
               key={c._id}
-              className="border p-4 rounded hover:bg-gray-500 cursor-pointer"
+              className="border p-4 rounded hover:bg-gray-100 cursor-pointer"
               onClick={() => router.push(`/dashboard/courses/${c.course._id}`)}
             >
               <h2 className="text-xl font-semibold">{c.course.title}</h2>
               <p className="text-gray-700 mt-1">價格：{c.finalPrice} 元</p>
               <p
                 className={`mt-1 font-semibold ${
-                  item.paid ? "text-green-600" : "text-red-600"
+                  c.paid ? "text-green-600" : "text-red-600"
                 }`}
               >
                 {c.paid ? "已付款" : "尚未付款"}

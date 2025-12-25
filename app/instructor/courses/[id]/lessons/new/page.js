@@ -18,7 +18,7 @@ export default function EditLessonPage() {
   useEffect(() => {
     const fetchLesson = async () => {
       try {
-        const { data } = await axios.get(`/api/lessons/${params.lessonId}`);
+        const { data } = await axios.get(`/api/lessons/${params.id}`);
         setTitle(data.lesson.title);
         setVideoUrl(data.lesson.videoUrl || "");
         setContent(data.lesson.content || "");

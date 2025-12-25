@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/withAuth";
 import { connectDB } from "@/lib/db";
 import Lesson from "@/models/Lesson";
 import Course from "@/models/Course";
+import Enrollment from "@/models/Enrollment";
 
 async function handler(req, { params }) {
   try {
@@ -19,25 +20,47 @@ async function handler(req, { params }) {
     if (!course) {
       return NextResponse.json({ error: "課程不存在" }, { status: 404 });
     }
-    if (course.instructor.toString() !== req.user.id) {
+    const baseLessonData = {
+      id: lesson._id.toString(),
+      title: lesson.title,
+      content: lesson.content,
+      videoUrl: lesson.videoUrl,
+      order: lesson.order,
+    };
+
+    if (req.user.role === "instructor") {
+      if (course.instructor.toString() !== req.user.id) {
+        return NextResponse.json(
+          { error: "權限不足，僅講師可修改章節" },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
-        { error: "權限不足，僅講師可修改章節" },
-        { status: 403 }
+        { message: "取得章節成功", lesson: baseLessonData },
+        { status: 200 }
       );
+    } else if (req.user.role === "student") {
+      const enrollment = await Enrollment.findOne({
+        user: req.user.id,
+        course: course._id,
+        paid: true,
+      });
+      if (!enrollment) {
+        return NextResponse.json(
+          { error: "尚未註冊此課程，無法檢視章節" },
+          { status: 403 }
+        );
+      }
+      const completed = enrollment.completedLessons?.some(
+        (id) => String(id) === lessonId
+      );
+      return NextResponse.json(
+        { message: "取得章節成功", lesson: baseLessonData, completed },
+        { status: 200 }
+      );
+    } else {
+      return NextResponse.json({ error: "未授權角色" }, { status: 403 });
     }
-    return NextResponse.json(
-      {
-        message: "取得章節成功",
-        lesson: {
-          id: lesson._id.toString(),
-          title: lesson.title,
-          content: lesson.content,
-          videoUrl: lesson.videoUrl,
-          order: lesson.order,
-        },
-      },
-      { status: 200 }
-    );
   } catch (err) {
     console.error("取得章節失敗:", err);
     return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
