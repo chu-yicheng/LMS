@@ -21,7 +21,7 @@ export default function AccountPage() {
   useEffect(() => {
     async function fetchAccount() {
       try {
-        const res = await axios.get("/api/account");
+        const res = await axios.get("/api/account/profile");
 
         if (!res.data.user) {
           toast.error("無法取得使用者資料");
@@ -48,7 +48,7 @@ export default function AccountPage() {
     setSaving(true);
 
     try {
-      await axios.patch("/api/account", { username, email });
+      await axios.patch("/api/account/profile", { username, email });
       toast.success("基本資料更新成功！");
     } catch (err) {
       toast.error(err.response?.data?.error || "更新失敗");
